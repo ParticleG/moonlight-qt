@@ -122,6 +122,14 @@ private:
     NvComputer* m_Computer;
 };
 
+void ComputerModel::resetComputer(int computerIndex) {
+    Q_ASSERT(computerIndex < m_Computers.count());
+    NvComputer *tempComputerPtr = m_Computers[computerIndex];
+    tempComputerPtr->state      = NvComputer::CS_UNKNOWN;
+    int  index                  = m_Computers.indexOf(tempComputerPtr);
+    emit dataChanged(createIndex(index, 0), createIndex(index, 0));
+}
+
 void ComputerModel::wakeComputer(int computerIndex)
 {
     Q_ASSERT(computerIndex < m_Computers.count());

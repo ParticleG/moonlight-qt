@@ -73,7 +73,6 @@ CenteredGridView {
             errorDialog.open()
         }
     }
-
     function createModel()
     {
         var model = Qt.createQmlObject('import ComputerModel 1.0; ComputerModel {}', parent, '')
@@ -159,15 +158,6 @@ CenteredGridView {
 
         NavigableMenu {
             id: pcContextMenu
-            Timer {
-                id: reconnectPC_timer
-                interval: 2000
-                onTriggered: {
-                    computerModel = createModel()
-                    stateIcon.visible = true;
-                    statusUnknownSpinner.visible = false;
-                }
-            }
             NavigableMenuItem {
                 parentMenu: pcContextMenu
                 text: "View Apps"
@@ -192,9 +182,8 @@ CenteredGridView {
                 parentMenu: pcContextMenu
                 text: "Reconnect PC"
                 onTriggered: {
-                    stateIcon.visible = false;
-                    statusUnknownSpinner.visible = true;
-                    reconnectPC_timer.start()
+                    computerModel.resetComputer(index)
+                    computerModel = createModel()
                 }
             }
             NavigableMenuItem {
