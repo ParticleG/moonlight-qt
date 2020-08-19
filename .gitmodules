@@ -1,6 +1,3 @@
-[submodule "moonlight-common-c/moonlight-common-c"]
-	path = moonlight-common-c/moonlight-common-c
-	url = https://github.com/ParticleG/moonlight-common-c.git
 [submodule "qmdnsengine/qmdnsengine"]
 	path = qmdnsengine/qmdnsengine
 	url = https://github.com/cgutman/qmdnsengine.git
@@ -13,3 +10,6 @@
 [submodule "h264bitstream/h264bitstream"]
 	path = h264bitstream/h264bitstream
 	url = https://github.com/aizvorski/h264bitstream.git
+[submodule "moonlight-common-c/moonlight-common-c"]
+	path = moonlight-common-c/moonlight-common-c
+	url = https://github.com/ParticleG/moonlight-common-c.git
