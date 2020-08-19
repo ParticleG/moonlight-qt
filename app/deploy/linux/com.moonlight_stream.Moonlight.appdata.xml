@@ -35,7 +35,7 @@
 	</screenshots>
 
 	<releases>
-		<release version="2.1.0" date="2020-05-17">
+                <release version="2.1.0" date="2020-05-17">
 			<description>
 				<p>New features:</p>
 				<ul>
@@ -47,7 +47,7 @@
 					<li>Various UI improvements</li>
 				</ul>
 				<p>Bugfixes:</p>
-				<ul>
+                                <ul>
 					<li>Fixed unreliable mouse capture when the stream begins</li>
 					<li>Fixed cursor being trapped in full-screen mode even when the mouse wasn't captured</li>
 					<li>Fixed key presses not being sent to the host if the Super/Meta/Windows key is pressed</li>

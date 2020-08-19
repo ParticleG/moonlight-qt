@@ -2,6 +2,7 @@ import QtQuick 2.9
 import QtQuick.Controls 2.2
 
 import StreamingPreferences 1.0
+import NetworkPreferences 1.0
 import ComputerManager 1.0
 import SdlGamepadKeyNavigation 1.0
 import SystemProperties 1.0
@@ -38,6 +39,7 @@ Flickable {
 
         // Save the prefs so the Session can observe the changes
         StreamingPreferences.save()
+        NetworkPreferences.save()
     }
 
     Column {
@@ -346,12 +348,12 @@ Flickable {
                     Component.onCompleted: {
                         // Set the recommended option based on the OS
                         for (var i = 0; i < windowModeListModel.count; i++) {
-                             var thisWm = windowModeListModel.get(i).val;
-                             if (thisWm === StreamingPreferences.recommendedFullScreenMode) {
-                                 windowModeListModel.get(i).text += " (Recommended)"
-                                 windowModeListModel.move(i, 0, 1);
-                                 break
-                             }
+                            var thisWm = windowModeListModel.get(i).val;
+                            if (thisWm === StreamingPreferences.recommendedFullScreenMode) {
+                                windowModeListModel.get(i).text += " (Recommended)"
+                                windowModeListModel.move(i, 0, 1);
+                                break
+                            }
                         }
 
                         currentIndex = 0
@@ -359,11 +361,11 @@ Flickable {
                         if (SystemProperties.hasWindowManager && !SystemProperties.rendererAlwaysFullScreen) {
                             var savedWm = StreamingPreferences.windowMode
                             for (var i = 0; i < windowModeListModel.count; i++) {
-                                 var thisWm = windowModeListModel.get(i).val;
-                                 if (savedWm === thisWm) {
-                                     currentIndex = i
-                                     break
-                                 }
+                                var thisWm = windowModeListModel.get(i).val;
+                                if (savedWm === thisWm) {
+                                    currentIndex = i
+                                    break
+                                }
                             }
                         }
 
@@ -545,6 +547,175 @@ Flickable {
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
                     ToolTip.text: "Updates your Discord status to display the name of the game you're streaming."
+                }
+            }
+        }
+
+        GroupBox {
+            id: networkSettingsGroupBox
+            width: (parent.width - (parent.leftPadding + parent.rightPadding))
+            padding: 12
+            title: "<font color=\"skyblue\">Network Settings</font>"
+            font.pointSize: 12
+
+            Column {
+                anchors.fill: parent
+                spacing: 5
+
+                Row {
+                    width: parent.width
+                    spacing: 5
+
+                    CheckBox {
+                        id: useCustomPortsCheck
+                        width: parent.width - restoreDefault_button.width
+                        text: "Use custom ports"
+                        font.pointSize:  12
+                        checked: NetworkPreferences.isUsingCustomPorts
+                        onCheckedChanged: {
+                            NetworkPreferences.isUsingCustomPorts = checked
+                        }
+                    }
+
+                    Button {
+                        id: restoreDefault_button
+                        text: qsTr("Restore defaults")
+                        enabled: useCustomPortsCheck.checked
+                        onClicked: {
+                            both_0_spinBox.value = 48010
+                            tcp_0_spinBox.value = 47984
+                            tcp_1_spinBox.value = 47989
+                            udp_0_spinBox.value = 47998
+                            udp_1_spinBox.value = 47999
+                            udp_2_spinBox.value = 48000
+                        }
+                    }
+                }
+
+                Label {
+                    width: parent.width
+                    id: bothPortsTitle
+                    text: qsTr("BOTH Ports")
+                    color: useCustomPortsCheck.checked ? "#FFFFFF": "#666666"
+                    font.pointSize: 12
+                    wrapMode: Text.Wrap
+                }
+
+                Row {
+                    width: parent.width
+                    spacing: 5
+
+                    SpinBox {
+                        id: both_0_spinBox
+                        editable:true
+                        to: 65535
+                        enabled: useCustomPortsCheck.checked
+                        textFromValue: function(value, locale) {
+                            return Number(value).toLocaleString(locale, 'f', 0).replace(/,/g, '')
+                        }
+                        value: NetworkPreferences.portBoth0
+                        onValueModified: {
+                            NetworkPreferences.portBoth0 = value
+                        }
+                    }
+                }
+
+                Label {
+                    width: parent.width
+                    id: tcpPortsTitle
+                    text: qsTr("TCP Ports")
+                    color: useCustomPortsCheck.checked ? "#FFFFFF": "#666666"
+                    font.pointSize: 12
+                    wrapMode: Text.Wrap
+                }
+
+                Row {
+                    width: parent.width
+                    spacing: 5
+
+                    SpinBox {
+                        id: tcp_0_spinBox
+                        editable:true
+                        to: 65535
+                        enabled: useCustomPortsCheck.checked
+                        textFromValue: function(value, locale) {
+                            return Number(value).toLocaleString(locale, 'f', 0).replace(/,/g, '')
+                        }
+                        value: NetworkPreferences.portTcp0
+                        onValueModified: {
+                            NetworkPreferences.portTcp0 = value
+                        }
+                    }
+
+                    SpinBox {
+                        id: tcp_1_spinBox
+                        editable:true
+                        to: 65535
+                        enabled: useCustomPortsCheck.checked
+                        textFromValue: function(value, locale) {
+                            return Number(value).toLocaleString(locale, 'f', 0).replace(/,/g, '')
+                        }
+                        value: NetworkPreferences.portTcp1
+                        onValueModified: {
+                            NetworkPreferences.portTcp1 = value
+                        }
+                    }
+                }
+
+                Label {
+                    width: parent.width
+                    id: udpPortsTitle
+                    text: qsTr("UDP Ports")
+                    color: useCustomPortsCheck.checked ? "#FFFFFF": "#666666"
+                    font.pointSize: 12
+                    wrapMode: Text.Wrap
+                }
+
+                Row {
+                    width: parent.width
+                    spacing: 5
+
+                    SpinBox {
+                        id: udp_0_spinBox
+                        editable:true
+                        to: 65535
+                        enabled: useCustomPortsCheck.checked
+                        textFromValue: function(value, locale) {
+                            return Number(value).toLocaleString(locale, 'f', 0).replace(/,/g, '')
+                        }
+                        value: NetworkPreferences.portUdp0
+                        onValueModified: {
+                            NetworkPreferences.portUdp0 = value
+                        }
+                    }
+
+                    SpinBox {
+                        id: udp_1_spinBox
+                        editable:true
+                        to: 65535
+                        enabled: useCustomPortsCheck.checked
+                        textFromValue: function(value, locale) {
+                            return Number(value).toLocaleString(locale, 'f', 0).replace(/,/g, '')
+                        }
+                        value: NetworkPreferences.portUdp1
+                        onValueModified: {
+                            NetworkPreferences.portUdp1 = value
+                        }
+                    }
+
+                    SpinBox {
+                        id: udp_2_spinBox
+                        editable:true
+                        to: 65535
+                        enabled: useCustomPortsCheck.checked
+                        textFromValue: function(value, locale) {
+                            return Number(value).toLocaleString(locale, 'f', 0).replace(/,/g, '')
+                        }
+                        value: NetworkPreferences.portUdp2
+                        onValueModified: {
+                            NetworkPreferences.portUdp2 = value
+                        }
+                    }
                 }
             }
         }

@@ -159,6 +159,15 @@ CenteredGridView {
 
         NavigableMenu {
             id: pcContextMenu
+            Timer {
+                id: reconnectPC_timer
+                interval: 2000
+                onTriggered: {
+                    computerModel = createModel()
+                    stateIcon.visible = true;
+                    statusUnknownSpinner.visible = false;
+                }
+            }
             NavigableMenuItem {
                 parentMenu: pcContextMenu
                 text: "View Apps"
@@ -178,6 +187,15 @@ CenteredGridView {
                     stackView.push(appView)
                 }
                 visible: model.online && model.paired
+            }
+            NavigableMenuItem {
+                parentMenu: pcContextMenu
+                text: "Reconnect PC"
+                onTriggered: {
+                    stateIcon.visible = false;
+                    statusUnknownSpinner.visible = true;
+                    reconnectPC_timer.start()
+                }
             }
             NavigableMenuItem {
                 parentMenu: pcContextMenu

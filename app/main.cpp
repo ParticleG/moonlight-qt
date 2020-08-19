@@ -28,18 +28,19 @@
 #include <openssl/ssl.h>
 #endif
 
-#include "cli/quitstream.h"
-#include "cli/startstream.h"
-#include "cli/commandlineparser.h"
-#include "path.h"
-#include "utils.h"
-#include "gui/computermodel.h"
-#include "gui/appmodel.h"
 #include "backend/autoupdatechecker.h"
 #include "backend/systemproperties.h"
-#include "streaming/session.h"
-#include "settings/streamingpreferences.h"
+#include "cli/commandlineparser.h"
+#include "cli/quitstream.h"
+#include "cli/startstream.h"
+#include "gui/appmodel.h"
+#include "gui/computermodel.h"
 #include "gui/sdlgamepadkeynavigation.h"
+#include "path.h"
+#include "settings/networkpreferences.h"
+#include "settings/streamingpreferences.h"
+#include "streaming/session.h"
+#include "utils.h"
 
 #if !defined(QT_DEBUG) && defined(Q_OS_WIN32)
 // Log to file for release Windows builds
@@ -461,31 +462,12 @@ int main(int argc, char *argv[])
     qmlRegisterType<ComputerModel>("ComputerModel", 1, 0, "ComputerModel");
     qmlRegisterType<AppModel>("AppModel", 1, 0, "AppModel");
     qmlRegisterUncreatableType<Session>("Session", 1, 0, "Session", "Session cannot be created from QML");
-    qmlRegisterSingletonType<ComputerManager>("ComputerManager", 1, 0,
-                                              "ComputerManager",
-                                              [](QQmlEngine*, QJSEngine*) -> QObject* {
-                                                  return new ComputerManager();
-                                              });
-    qmlRegisterSingletonType<AutoUpdateChecker>("AutoUpdateChecker", 1, 0,
-                                                "AutoUpdateChecker",
-                                                [](QQmlEngine*, QJSEngine*) -> QObject* {
-                                                    return new AutoUpdateChecker();
-                                                });
-    qmlRegisterSingletonType<SystemProperties>("SystemProperties", 1, 0,
-                                               "SystemProperties",
-                                               [](QQmlEngine*, QJSEngine*) -> QObject* {
-                                                   return new SystemProperties();
-                                               });
-    qmlRegisterSingletonType<SdlGamepadKeyNavigation>("SdlGamepadKeyNavigation", 1, 0,
-                                                      "SdlGamepadKeyNavigation",
-                                                      [](QQmlEngine*, QJSEngine*) -> QObject* {
-                                                          return new SdlGamepadKeyNavigation();
-                                                      });
-    qmlRegisterSingletonType<StreamingPreferences>("StreamingPreferences", 1, 0,
-                                                   "StreamingPreferences",
-                                                   [](QQmlEngine*, QJSEngine*) -> QObject* {
-                                                       return new StreamingPreferences();
-                                                   });
+    qmlRegisterSingletonType<ComputerManager>("ComputerManager", 1, 0, "ComputerManager", [](QQmlEngine *, QJSEngine *) -> QObject * { return new ComputerManager(); });
+    qmlRegisterSingletonType<AutoUpdateChecker>("AutoUpdateChecker", 1, 0, "AutoUpdateChecker", [](QQmlEngine *, QJSEngine *) -> QObject * { return new AutoUpdateChecker(); });
+    qmlRegisterSingletonType<SystemProperties>("SystemProperties", 1, 0, "SystemProperties", [](QQmlEngine *, QJSEngine *) -> QObject * { return new SystemProperties(); });
+    qmlRegisterSingletonType<SdlGamepadKeyNavigation>("SdlGamepadKeyNavigation", 1, 0, "SdlGamepadKeyNavigation", [](QQmlEngine *, QJSEngine *) -> QObject * { return new SdlGamepadKeyNavigation(); });
+    qmlRegisterSingletonType<NetworkPreferences>("NetworkPreferences", 1, 0, "NetworkPreferences", [](QQmlEngine *, QJSEngine *) -> QObject * { return new NetworkPreferences(); });
+    qmlRegisterSingletonType<StreamingPreferences>("StreamingPreferences", 1, 0, "StreamingPreferences", [](QQmlEngine *, QJSEngine *) -> QObject * { return new StreamingPreferences(); });
 
     // Create the identity manager on the main thread
     IdentityManager::get();

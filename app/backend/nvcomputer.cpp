@@ -1,10 +1,11 @@
 #include "nvcomputer.h"
+
 #include "nvapp.h"
 
-#include <QUdpSocket>
 #include <QHostInfo>
 #include <QNetworkInterface>
 #include <QNetworkProxy>
+#include <QUdpSocket>
 
 #define SER_NAME "hostname"
 #define SER_UUID "uuid"
@@ -17,17 +18,16 @@
 #define SER_SRVCERT "srvcert"
 #define SER_CUSTOMNAME "customname"
 
-NvComputer::NvComputer(QSettings& settings)
-{
-    this->name = settings.value(SER_NAME).toString();
-    this->uuid = settings.value(SER_UUID).toString();
+NvComputer::NvComputer(QSettings &settings) {
+    this->name          = settings.value(SER_NAME).toString();
+    this->uuid          = settings.value(SER_UUID).toString();
     this->hasCustomName = settings.value(SER_CUSTOMNAME).toBool();
-    this->macAddress = settings.value(SER_MAC).toByteArray();
-    this->localAddress = settings.value(SER_LOCALADDR).toString();
+    this->macAddress    = settings.value(SER_MAC).toByteArray();
+    this->localAddress  = settings.value(SER_LOCALADDR).toString();
     this->remoteAddress = settings.value(SER_REMOTEADDR).toString();
-    this->ipv6Address = settings.value(SER_IPV6ADDR).toString();
+    this->ipv6Address   = settings.value(SER_IPV6ADDR).toString();
     this->manualAddress = settings.value(SER_MANUALADDR).toString();
-    this->serverCert = QSslCertificate(settings.value(SER_SRVCERT).toByteArray());
+    this->serverCert    = QSslCertificate(settings.value(SER_SRVCERT).toByteArray());
 
     int appCount = settings.beginReadArray(SER_APPLIST);
     for (int i = 0; i < appCount; i++) {
@@ -39,20 +39,19 @@ NvComputer::NvComputer(QSettings& settings)
     settings.endArray();
     sortAppList();
 
-    this->activeAddress = nullptr;
-    this->currentGameId = 0;
-    this->pairState = PS_UNKNOWN;
-    this->state = CS_UNKNOWN;
-    this->gfeVersion = nullptr;
-    this->appVersion = nullptr;
-    this->maxLumaPixelsHEVC = 0;
+    this->activeAddress          = nullptr;
+    this->currentGameId          = 0;
+    this->pairState              = PS_UNKNOWN;
+    this->state                  = CS_UNKNOWN;
+    this->gfeVersion             = nullptr;
+    this->appVersion             = nullptr;
+    this->maxLumaPixelsHEVC      = 0;
     this->serverCodecModeSupport = 0;
-    this->pendingQuit = false;
-    this->gpuModel = nullptr;
+    this->pendingQuit            = false;
+    this->gpuModel               = nullptr;
 }
 
-void NvComputer::serialize(QSettings& settings) const
-{
+void NvComputer::serialize(QSettings &settings) const {
     QReadLocker lock(&this->lock);
 
     settings.setValue(SER_NAME, name);
@@ -77,75 +76,57 @@ void NvComputer::serialize(QSettings& settings) const
     }
 }
 
-void NvComputer::sortAppList()
-{
-    std::stable_sort(appList.begin(), appList.end(), [](const NvApp& app1, const NvApp& app2) {
-       return app1.name.toLower() < app2.name.toLower();
-    });
+void NvComputer::sortAppList() {
+    std::stable_sort(appList.begin(), appList.end(), [](const NvApp &app1, const NvApp &app2) { return app1.name.toLower() < app2.name.toLower(); });
 }
 
-NvComputer::NvComputer(QString address, QString serverInfo, QSslCertificate serverCert)
-{
+NvComputer::NvComputer(QString address, QString serverInfo, QSslCertificate serverCert) {
     this->serverCert = serverCert;
 
     this->hasCustomName = false;
-    this->name = NvHTTP::getXmlString(serverInfo, "hostname");
-    if (this->name.isEmpty()) {
-        this->name = "UNKNOWN";
-    }
+    this->name          = NvHTTP::getXmlString(serverInfo, "hostname");
+    if (this->name.isEmpty()) { this->name = "UNKNOWN"; }
 
-    this->uuid = NvHTTP::getXmlString(serverInfo, "uniqueid");
+    this->uuid           = NvHTTP::getXmlString(serverInfo, "uniqueid");
     QString newMacString = NvHTTP::getXmlString(serverInfo, "mac");
     if (newMacString != "00:00:00:00:00:00") {
         QStringList macOctets = newMacString.split(':');
-        for (QString macOctet : macOctets) {
-            this->macAddress.append((char) macOctet.toInt(nullptr, 16));
-        }
+        for (QString macOctet : macOctets) { this->macAddress.append((char)macOctet.toInt(nullptr, 16)); }
     }
 
     QString codecSupport = NvHTTP::getXmlString(serverInfo, "ServerCodecModeSupport");
     if (!codecSupport.isEmpty()) {
         this->serverCodecModeSupport = codecSupport.toInt();
-    }
-    else {
+    } else {
         this->serverCodecModeSupport = 0;
     }
 
     QString maxLumaPixelsHEVC = NvHTTP::getXmlString(serverInfo, "MaxLumaPixelsHEVC");
     if (!maxLumaPixelsHEVC.isEmpty()) {
         this->maxLumaPixelsHEVC = maxLumaPixelsHEVC.toInt();
-    }
-    else {
+    } else {
         this->maxLumaPixelsHEVC = 0;
     }
 
     this->displayModes = NvHTTP::getDisplayModeList(serverInfo);
-    std::stable_sort(this->displayModes.begin(), this->displayModes.end(),
-                     [](const NvDisplayMode& mode1, const NvDisplayMode& mode2) {
-        return mode1.width * mode1.height * mode1.refreshRate <
-                mode2.width * mode2.height * mode2.refreshRate;
-    });
+    std::stable_sort(this->displayModes.begin(), this->displayModes.end(), [](const NvDisplayMode &mode1, const NvDisplayMode &mode2) { return mode1.width * mode1.height * mode1.refreshRate < mode2.width * mode2.height * mode2.refreshRate; });
 
     // We can get an IPv4 loopback address if we're using the GS IPv6 Forwarder
     this->localAddress = NvHTTP::getXmlString(serverInfo, "LocalIP");
-    if (this->localAddress.startsWith("127.")) {
-        this->localAddress = QString();
-    }
+    if (this->localAddress.startsWith("127.")) { this->localAddress = QString(); }
 
     this->remoteAddress = NvHTTP::getXmlString(serverInfo, "ExternalIP");
-    this->pairState = NvHTTP::getXmlString(serverInfo, "PairStatus") == "1" ?
-                PS_PAIRED : PS_NOT_PAIRED;
+    this->pairState     = NvHTTP::getXmlString(serverInfo, "PairStatus") == "1" ? PS_PAIRED : PS_NOT_PAIRED;
     this->currentGameId = NvHTTP::getCurrentGame(serverInfo);
-    this->appVersion = NvHTTP::getXmlString(serverInfo, "appversion");
-    this->gfeVersion = NvHTTP::getXmlString(serverInfo, "GfeVersion");
-    this->gpuModel = NvHTTP::getXmlString(serverInfo, "gputype");
+    this->appVersion    = NvHTTP::getXmlString(serverInfo, "appversion");
+    this->gfeVersion    = NvHTTP::getXmlString(serverInfo, "GfeVersion");
+    this->gpuModel      = NvHTTP::getXmlString(serverInfo, "gputype");
     this->activeAddress = address;
-    this->state = NvComputer::CS_ONLINE;
-    this->pendingQuit = false;
+    this->state         = NvComputer::CS_ONLINE;
+    this->pendingQuit   = false;
 }
 
-bool NvComputer::wake()
-{
+bool NvComputer::wake() {
     if (state == NvComputer::CS_ONLINE) {
         qWarning() << name << "is already online";
         return true;
@@ -157,17 +138,19 @@ bool NvComputer::wake()
     }
 
     const quint16 WOL_PORTS[] = {
-        9, // Standard WOL port (privileged port)
-        47998, 47999, 48000, 48002, 48010, // Ports opened by GFE
-        47009, // Port opened by Moonlight Internet Hosting Tool for WoL (non-privileged port)
+        9,    // Standard WOL port (privileged port)
+        networkPreferences.portUdp0,
+        networkPreferences.portUdp1,
+        networkPreferences.portUdp2,
+        48002,                           // test port, no need to be customable
+        networkPreferences.portBoth0,    // Ports opened by GFE
+        47009,                           // Port opened by Moonlight Internet Hosting Tool for WoL (non-privileged port)
     };
 
     // Create the WoL payload
     QByteArray wolPayload;
     wolPayload.append(QByteArray::fromHex("FFFFFFFFFFFF"));
-    for (int i = 0; i < 16; i++) {
-        wolPayload.append(macAddress);
-    }
+    for (int i = 0; i < 16; i++) { wolPayload.append(macAddress); }
     Q_ASSERT(wolPayload.count() == 102);
 
     // Add the addresses that we know this host to be
@@ -177,34 +160,25 @@ bool NvComputer::wake()
     addressList.append("255.255.255.255");
 
     // Try to broadcast on all available NICs
-    for (const QNetworkInterface& nic : QNetworkInterface::allInterfaces()) {
+    for (const QNetworkInterface &nic : QNetworkInterface::allInterfaces()) {
         // Ensure the interface is up and skip the loopback adapter
-        if ((nic.flags() & QNetworkInterface::IsUp) == 0 ||
-                (nic.flags() & QNetworkInterface::IsLoopBack) != 0) {
-            continue;
-        }
+        if ((nic.flags() & QNetworkInterface::IsUp) == 0 || (nic.flags() & QNetworkInterface::IsLoopBack) != 0) { continue; }
 
         QHostAddress allNodesMulticast("FF02::1");
-        for (const QNetworkAddressEntry& addr : nic.addressEntries()) {
+        for (const QNetworkAddressEntry &addr : nic.addressEntries()) {
             // Store the scope ID for this NIC if IPv6 is enabled
-            if (!addr.ip().scopeId().isEmpty()) {
-                allNodesMulticast.setScopeId(addr.ip().scopeId());
-            }
+            if (!addr.ip().scopeId().isEmpty()) { allNodesMulticast.setScopeId(addr.ip().scopeId()); }
 
             // Skip IPv6 which doesn't support broadcast
-            if (!addr.broadcast().isNull()) {
-                addressList.append(addr.broadcast().toString());
-            }
+            if (!addr.broadcast().isNull()) { addressList.append(addr.broadcast().toString()); }
         }
 
-        if (!allNodesMulticast.scopeId().isEmpty()) {
-            addressList.append(allNodesMulticast.toString());
-        }
+        if (!allNodesMulticast.scopeId().isEmpty()) { addressList.append(allNodesMulticast.toString()); }
     }
 
     // Try all unique address strings or host names
     bool success = false;
-    for (QString& addressString : addressList) {
+    for (QString &addressString : addressList) {
         QHostInfo hostInfo = QHostInfo::fromName(addressString);
 
         if (hostInfo.error() != QHostInfo::NoError) {
@@ -213,7 +187,7 @@ bool NvComputer::wake()
         }
 
         // Try all IP addresses that this string resolves to
-        for (QHostAddress& address : hostInfo.addresses()) {
+        for (QHostAddress &address : hostInfo.addresses()) {
             QUdpSocket sock;
 
             // Send to all ports
@@ -221,8 +195,7 @@ bool NvComputer::wake()
                 if (sock.writeDatagram(wolPayload, address, port)) {
                     qInfo().nospace().noquote() << "Sent WoL packet to " << name << " via " << address.toString() << ":" << port;
                     success = true;
-                }
-                else {
+                } else {
                     qWarning() << "Send failed:" << sock.error();
                 }
             }
@@ -232,26 +205,21 @@ bool NvComputer::wake()
     return success;
 }
 
-bool NvComputer::isReachableOverVpn()
-{
-    if (activeAddress.isEmpty()) {
-        return false;
-    }
+bool NvComputer::isReachableOverVpn() {
+    if (activeAddress.isEmpty()) { return false; }
 
     QTcpSocket s;
 
     s.setProxy(QNetworkProxy::NoProxy);
-    s.connectToHost(activeAddress, 47984);
+    s.connectToHost(activeAddress, networkPreferences.portTcp0);
     if (s.waitForConnected(3000)) {
         Q_ASSERT(!s.localAddress().isNull());
 
-        for (const QNetworkInterface& nic : QNetworkInterface::allInterfaces()) {
+        for (const QNetworkInterface &nic : QNetworkInterface::allInterfaces()) {
             // Ensure the interface is up
-            if ((nic.flags() & QNetworkInterface::IsUp) == 0) {
-                continue;
-            }
+            if ((nic.flags() & QNetworkInterface::IsUp) == 0) { continue; }
 
-            for (const QNetworkAddressEntry& addr : nic.addressEntries()) {
+            for (const QNetworkAddressEntry &addr : nic.addressEntries()) {
                 if (addr.ip() == s.localAddress()) {
                     qInfo() << "Found matching interface:" << nic.humanReadableName() << nic.hardwareAddress() << nic.flags();
 
@@ -259,8 +227,7 @@ bool NvComputer::isReachableOverVpn()
                     qInfo() << "Interface Type:" << nic.type();
                     qInfo() << "Interface MTU:" << nic.maximumTransmissionUnit();
 
-                    if (nic.type() == QNetworkInterface::Virtual ||
-                            nic.type() == QNetworkInterface::Ppp) {
+                    if (nic.type() == QNetworkInterface::Virtual || nic.type() == QNetworkInterface::Ppp) {
                         // Treat PPP and virtual interfaces as likely VPNs
                         return true;
                     }
@@ -300,24 +267,19 @@ bool NvComputer::isReachableOverVpn()
 
         qWarning() << "No match found for address:" << s.localAddress();
         return false;
-    }
-    else {
+    } else {
         // If we fail to connect, just pretend that it's not a VPN
         return false;
     }
 }
 
 bool NvComputer::updateAppList(QVector<NvApp> newAppList) {
-    if (appList == newAppList) {
-        return false;
-    }
+    if (appList == newAppList) { return false; }
 
     // Propagate client-side attributes to the new app list
-    for (const NvApp& existingApp : appList) {
-        for (NvApp& newApp : newAppList) {
-            if (existingApp.id == newApp.id) {
-                newApp.hidden = existingApp.hidden;
-            }
+    for (const NvApp &existingApp : appList) {
+        for (NvApp &newApp : newAppList) {
+            if (existingApp.id == newApp.id) { newApp.hidden = existingApp.hidden; }
         }
     }
 
@@ -326,8 +288,7 @@ bool NvComputer::updateAppList(QVector<NvApp> newAppList) {
     return true;
 }
 
-QVector<QString> NvComputer::uniqueAddresses() const
-{
+QVector<QString> NvComputer::uniqueAddresses() const {
     QVector<QString> uniqueAddressList;
 
     // Start with addresses correctly ordered
@@ -359,35 +320,32 @@ QVector<QString> NvComputer::uniqueAddresses() const
     return uniqueAddressList;
 }
 
-bool NvComputer::update(NvComputer& that)
-{
+bool NvComputer::update(NvComputer &that) {
     bool changed = false;
 
     // Lock us for write and them for read
     QWriteLocker thisLock(&this->lock);
-    QReadLocker thatLock(&that.lock);
+    QReadLocker  thatLock(&that.lock);
 
     // UUID may not change or we're talking to a new PC
     Q_ASSERT(this->uuid == that.uuid);
 
-#define ASSIGN_IF_CHANGED(field)       \
-    if (this->field != that.field) {   \
-        this->field = that.field;      \
-        changed = true;                \
+#define ASSIGN_IF_CHANGED(field)     \
+    if (this->field != that.field) { \
+        this->field = that.field;    \
+        changed     = true;          \
     }
 
-#define ASSIGN_IF_CHANGED_AND_NONEMPTY(field) \
-    if (!that.field.isEmpty() &&              \
-        this->field != that.field) {          \
-        this->field = that.field;             \
-        changed = true;                       \
+#define ASSIGN_IF_CHANGED_AND_NONEMPTY(field)                 \
+    if (!that.field.isEmpty() && this->field != that.field) { \
+        this->field = that.field;                             \
+        changed     = true;                                   \
     }
 
-#define ASSIGN_IF_CHANGED_AND_NONNULL(field)  \
-    if (!that.field.isNull() &&               \
-        this->field != that.field) {          \
-        this->field = that.field;             \
-        changed = true;                       \
+#define ASSIGN_IF_CHANGED_AND_NONNULL(field)                 \
+    if (!that.field.isNull() && this->field != that.field) { \
+        this->field = that.field;                            \
+        changed     = true;                                  \
     }
 
     if (!hasCustomName) {
